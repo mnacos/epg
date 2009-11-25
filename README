@@ -1,0 +1,109 @@
+epg -- an Erlang PostgreSQL libpq wrapper
+
+author: Michael Nacos (m.nacos AT gmail.com)
+
+--------------------------------------------------------------------------------------
+This software has been released under the terms of the BSD license.
+Please read LICENSE for more details. Use of this software implies LICENSE acceptance.
+--------------------------------------------------------------------------------------
+
+This code is alpha at best. Please Use at your own risk.
+
+REQUIREMENTS -------------------------------------------------------------------------
+
+   You need access to your PostgreSQL source or the equivalent development files.
+   In the following examples, we assume PostgreSQL has been compiled from source
+   and installed in this location: /usr/local/pgsql8.4.1
+
+INSTALLATION -------------------------------------------------------------------------
+
+   gcc -L/usr/local/pgsql8.4.1/lib -I/usr/local/pgsql8.4.1/include -lpq epg.c -o epg
+   sudo mv epg /usr/local/bin
+   erlc epg.erl
+
+INSTRUCTIONS -------------------------------------------------------------------------
+
+   epg.beam needs to be in your erl path whenever you use it, of course.
+   You may make this so via the -pa erl flag (e.g. erl -pa /my/path/to/epg.beam ...)
+   The epg executable must also be in your path (e.g. /usr/local/bin)
+
+   The first call to epg:exec() is an authentication call. If successful, subsequent
+   exec() calls execute SQL statements until epg:stop() is called. If authentication
+   is unsuccessful, exec() keeps trying to authenticate. For a list of options and 
+   the format of the connection string, please visit the following link:
+
+   http://www.postgresql.org/docs/8.4/static/libpq-connect.html
+
+   SELECT queries return [{header,HList},{data,DList}] or {error,Msg}
+   INSERT/UPDATE/DELETE etc.  return either {info,Msg} or {error,Msg}
+
+EXAMPLES -----------------------------------------------------------------------------
+
+Eshell V5.6.5  (abort with ^G)
+
+% --- Startup ---
+
+   1> epg:start(conn1).
+	   <0.33.0>
+   2> epg:start(conn2).
+	   <0.35.0>
+
+% --- Authentication ---
+
+   3> epg:exec(conn1,"user=postgres dbname=postgres").             
+	   {info,"postgres@localhost:5432/postgres\n\n\n"}
+
+   4> epg:exec(conn2,"user=someuser password=somepass host=somehost port=5432 dbname=mydb").
+	   {info,"someuser@somehost:5432/mydb\n\n\n"}
+
+% --- Executing queries ---
+
+5> epg:exec(conn1, "SELECT version();").
+	[{header,[{"version",25}]},
+	 {data,[{"PostgreSQL 8.3.5 on x86_64-pc-linux-gnu, compiled by GCC gcc-4.3.real (Debian 4.3.2-1) 4.3.2"}]}]
+
+6> epg:exec(conn1,"CREATE TEMP TABLE hello (id INT PRIMARY KEY, val TEXT);").
+	NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "hello_pkey" for table "hello"
+	{info,"CREATE TABLE\n\n\n"}
+
+% --- Processing the result set ---
+
+7> [_,{data,Data}] = epg:exec(conn2,"SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW';"), [io:format("~p~n",[T]) || T <- Data].
+
+	{"user_mapping_options"}
+	{"user_mappings"}
+	{"triggered_update_columns"}
+	{"triggers"}
+	{"usage_privileges"}
+	{"view_column_usage"}
+	{"view_routine_usage"}
+	{"view_table_usage"}
+	{"views"}
+	{"data_type_privileges"}
+	{"element_types"}
+	...
+
+% --- Pretty Printing ---
+
+8> epg:pp(epg:exec(conn1,"SELECT table_name FROM information_schema.tables WHERE table_type = 'VIEW';")).
+
+             	table_name             
+	+-----------------------------------
+	| tables                            
+	| triggered_update_columns          
+	| triggers                          
+	| usage_privileges                  
+	| view_column_usage                 
+	| view_routine_usage                
+	| view_table_usage                  
+	| views                             
+	| data_type_privileges              
+	| element_types                     
+	| schemata                          
+	| sequences                         
+	...
+
+% --- Disconnecting ---
+
+8> epg:stop(conn1), epg:stop(conn2).
+
