@@ -25,6 +25,7 @@
 #define HARD_LIMIT 32768
 
 int run;
+int last;
 PGconn *connection;
 
 /* simplistic die procedure */
@@ -68,6 +69,10 @@ char * rline()
 		else { free(buffer); free(more); die("Out of memory!"); }
 	}
 	int size = strlen(buffer);
+	if( last == 0 && size == 0 ) {
+		run = 0; fprintf(stdout,"!bye!\n"); fflush(stdout);
+	}
+	last = size;
 
 	// converting buffer to a wide-character string
 	// wchar_t *conv = (wchar_t *) malloc(size * sizeof(wchar_t));
@@ -126,6 +131,7 @@ void wline (PGresult *res)
 char * xline(char *line)
 {
 	// simple interaction with Postgresql
+	if( !run ) { return line; }
 	if( !abs(strcmp(line,"quit")) ) {run = 0;fprintf(stdout,"!bye!\n");fflush(stdout);}
 	else { PGresult *res = PQexec(connection, line); wline(res); PQclear(res); }
 	return line;
@@ -135,6 +141,7 @@ char * xline(char *line)
 char * cline(char *line)
 {
 	// simple interaction with Postgresql
+	if( !run ) { return line; }
 	if( !abs(strcmp(line,"quit")) ) {
 		run = 0; fprintf(stdout,"!bye!\n"); fflush(stdout);
 		return line;	
@@ -159,7 +166,7 @@ char * cline(char *line)
 
 int main()
 {
-	run = 1; connection = NULL;
+	run = 1; last = 1; connection = NULL;
 	setlocale(LC_ALL,"");
 	while(run && connection == NULL) { free(cline(rline())); }
 	while(run) { free(xline(rline())); }
