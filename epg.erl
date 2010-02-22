@@ -28,7 +28,7 @@ start(Id) ->
     spawn(fun() ->
 		  register(Id, self()),
 		  process_flag(trap_exit, true),
-		  Port = open_port({spawn, "epg"}, [use_stdio, {line, 4096}]),
+		  Port = open_port({spawn, "epg "++atom_to_list(Id)}, [use_stdio, {line, 4096}]),
 		  loop(Port)
 	  end).
 
