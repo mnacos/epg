@@ -22,7 +22,7 @@
 
 /* LINE_BUFFER_SIZE is the max number of bytes we allow per line */
 #define LINE_BUFFER_SIZE 8192
-#define HARD_LIMIT 32768
+#define HARD_LIMIT 16777216
 
 int run;
 int last;
